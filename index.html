@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gas Map</title>
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <script>
+        let map;
+        let userMarker;
+        const backendApiUrl = 'http://localhost:8080/api'; // Adjust if your backend runs elsewhere
+
+        async function initMap() {
+            // Request user's location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const userLocation = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Load the map centered on the user's location
+                    const { Map } = await google.maps.importLibrary("maps");
+                    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+
+                    map = new Map(document.getElementById("map"), {
+                        center: userLocation,
+                        zoom: 14,
+                        mapId: 'GAS_MAP_ID' // Replace with your Map ID if you have one
+                    });
+
+                    userMarker = new AdvancedMarkerElement({
+                        map: map,
+                        position: userLocation,
+                        title: "Your Location"
+                    });
+
+                    // Fetch and display gas stations
+                    fetchAndDisplayGasStations(userLocation);
+
+                }, () => {
+                    // Geolocation failed or was denied
+                    handleLocationError(true, map ? map.getCenter() : { lat: -34.397, lng: 150.644 });
+                });
+            } else {
+                // Browser doesn't support Geolocation
+                handleLocationError(false, map ? map.getCenter() : { lat: -34.397, lng: 150.644 });
+            }
+        }
+
+        function handleLocationError(browserHasGeolocation, pos) {
+            // Fallback map initialization if geolocation fails
+            // You might want to alert the user or ask for a manual location
+            console.error(browserHasGeolocation ?
+                            'Error: The Geolocation service failed.' :
+                            'Error: Your browser doesn\'t support geolocation.');
+            
+            async function initializeFallbackMap() { // Made this async to use await
+                if (!map) { // Initialize map with default location if not already done
+                    const { Map } = await google.maps.importLibrary("maps");
+                    map = new Map(document.getElementById("map"), {
+                        center: pos, // default location
+                        zoom: 6,
+                        mapId: 'GAS_MAP_ID'
+                    });
+                }
+            }
+            initializeFallbackMap();
+           
+            // Optionally, display a message on the map or page
+        }
+
+        async function fetchAndDisplayGasStations(location) {
+            // Placeholder: In a real app, you'd fetch this from your backend
+            // For MVP Phase 1, backend will provide mock data
+            console.log("Fetching gas stations near:", location);
+            try {
+                // Comment out the actual fetch for now, using mock data.
+                // const response = await fetch(`${backendApiUrl}/gasstations/nearby?lat=${location.lat}&lng=${location.lng}&radius=5000`); // Example radius in meters
+                // if (!response.ok) {
+                //     console.error("Failed to fetch gas stations:", response.statusText);
+                //     return;
+                // }
+                // const gasStations = await response.json();
+
+                // Mock data for now until backend is ready
+                const gasStations = [
+                    { id: "1", name: "Mock Gas Stop A", location: { lat: location.lat + 0.01, lng: location.lng + 0.01 }, price: "N/A" },
+                    { id: "2", name: "Mock Gas Stop B", location: { lat: location.lat - 0.01, lng: location.lng - 0.01 }, price: "N/A" }
+                ];
+                
+                if (map && gasStations.length > 0) { // Ensure map is initialized
+                    const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+
+                    gasStations.forEach(station => {
+                        new AdvancedMarkerElement({
+                            map: map,
+                            position: station.location,
+                            title: `${station.name} - Price: ${station.price || 'N/A'}`
+                            // You can customize marker icon here
+                        });
+                    });
+                } else if (!map) {
+                    console.warn("Map not initialized when trying to display gas stations.");
+                }
+
+            } catch (error) {
+                console.error("Error fetching or displaying gas stations:", error);
+            }
+        }
+
+        // Replace 'YOUR_API_KEY' with your actual Google Maps API key
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap&libraries=marker,places"></script>
+</body>
+</html> 
